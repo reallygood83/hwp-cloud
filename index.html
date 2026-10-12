@@ -7,7 +7,7 @@
     <meta name="description" content="브라우저에서 한글(HWP·HWPX) 문서를 열고 편집하고, 템플릿을 클라우드에 보관합니다." />
     <meta
       name="ai-agent-instructions"
-      content="문서 본문은 캔버스로 그려져 화면 글자를 읽을 수 없습니다. 오른쪽 'Aside 도구' 패널의 '문서 텍스트'로 읽고, '찾아 바꾸기'와 '선택 영역 바꾸기'로 고치세요. 자바스크립트를 실행할 수 있으면 window.hwpCloud.help()를 호출하세요. 자세한 안내: /llms.txt"
+      content="왼쪽 편집기는 그림이라 글자를 읽을 수 없습니다. 오른쪽 Aside 도구의 문단 번호와 표를 읽고, 아래 입력칸으로 고치세요. 자바스크립트가 되면 window.hwpCloud.help(). 안내: /llms.txt"
     />
     <link rel="icon" href="data:image/svg+xml,%3Csvg xmlns='http://www.w3.org/2000/svg' viewBox='0 0 32 32'%3E%3Crect width='32' height='32' rx='8' fill='%232f6bff'/%3E%3Ctext x='16' y='22' text-anchor='middle' font-size='17' fill='white'%3E한%3C/text%3E%3C/svg%3E" />
   </head>
@@ -26,57 +26,77 @@
         <input id="openInput" type="file" accept=".hwp,.hwpx" hidden />
         <button id="templatesBtn" class="btn ghost" type="button">템플릿</button>
         <button id="downloadBtn" class="btn primary" type="button" disabled title="현재 문서를 HWP 파일로 내려받습니다">HWP로 내려받기</button>
-        <button id="toolsBtn" class="btn ghost tools-toggle" type="button" aria-pressed="false" aria-controls="toolsPanel">Aside 도구</button>
+        <button id="toolsBtn" class="btn ghost tools-toggle" type="button" aria-pressed="true" aria-controls="toolsPanel">Aside 도구</button>
         <div id="account" class="account"></div>
       </div>
     </header>
 
     <main class="workspace">
-      <section class="editor-area" aria-label="문서 편집기">
-        <iframe id="editorFrame" class="editor-frame" src="/editor/index.html" title="한글 문서 편집기"></iframe>
-      </section>
-
-      <aside id="toolsPanel" class="tools" aria-label="Aside 도구" hidden>
+      <aside id="toolsPanel" class="tools" aria-label="Aside 도구">
         <div class="tools-head">
           <strong>Aside 도구</strong>
           <button id="toolsClose" class="btn ghost icon" type="button" aria-label="Aside 도구 닫기">✕</button>
         </div>
-        <p class="tools-note">
-          Aside 브라우저의 AI가 이 패널로 문서를 읽고 고칩니다. 바꾼 내용은 편집기에서 Ctrl+Z로 되돌릴 수 있습니다.
-        </p>
+        <p class="tools-note">문서 글자는 여기 있습니다. 왼쪽 편집기 버튼은 무시하세요. 바꾼 내용은 Ctrl+Z로 되돌립니다.</p>
+        <p id="workResult" class="work-result" role="status" aria-live="polite"></p>
 
-        <section class="tool" aria-labelledby="textHead">
+        <section class="tool" aria-labelledby="outlineHead">
           <div class="tool-head">
-            <h2 id="textHead">문서 텍스트</h2>
-            <button id="refreshTextBtn" class="btn small" type="button">새로고침</button>
+            <h2 id="outlineHead">문서</h2>
+            <button id="refreshOutlineBtn" class="btn small" type="button">문서 새로고침</button>
           </div>
-          <textarea id="docText" class="doc-text" readonly aria-label="문서 텍스트" placeholder="문서를 열면 본문 텍스트가 여기에 표시됩니다."></textarea>
-          <p id="docStats" class="hint"></p>
+          <div id="outline" class="outline"><p class="hint">문서를 열면 문단 번호와 표가 여기에 표시됩니다.</p></div>
+          <p id="outlineStats" class="hint"></p>
+        </section>
+
+        <section class="tool" aria-labelledby="paraHead">
+          <h2 id="paraHead">문단 고치기</h2>
+          <form id="paraForm" class="stack">
+            <label>문단 번호 <input id="paraNo" type="number" min="1" required /></label>
+            <label>새 내용 <textarea id="paraText" rows="3"></textarea></label>
+            <div class="btn-row">
+              <button class="btn primary" type="submit" value="replace">문단 바꾸기</button>
+              <button class="btn" type="submit" value="insert">이 문단 뒤에 넣기</button>
+              <button class="btn danger" type="submit" value="delete">이 문단 삭제</button>
+            </div>
+          </form>
+        </section>
+
+        <section class="tool" aria-labelledby="cellHead">
+          <h2 id="cellHead">표 칸 고치기</h2>
+          <form id="cellForm" class="stack">
+            <div class="btn-row">
+              <label>표 번호 <input id="cellTable" type="number" min="1" required /></label>
+              <label>행 <input id="cellRow" type="number" min="1" required /></label>
+              <label>열 <input id="cellCol" type="number" min="1" required /></label>
+            </div>
+            <label>칸 내용 <textarea id="cellText" rows="2"></textarea></label>
+            <button class="btn primary" type="submit">칸 바꾸기</button>
+          </form>
         </section>
 
         <section class="tool" aria-labelledby="replaceHead">
           <h2 id="replaceHead">찾아 바꾸기</h2>
           <form id="replaceForm" class="stack">
-            <label>찾을 내용 <input id="findInput" name="find" type="text" required /></label>
-            <label>바꿀 내용 <input id="replaceInput" name="replace" type="text" /></label>
+            <label>찾을 내용 <input id="findInput" type="text" required /></label>
+            <label>바꿀 내용 <input id="replaceInput" type="text" /></label>
             <button class="btn primary" type="submit">모두 바꾸기</button>
           </form>
-          <p id="replaceResult" class="hint" role="status"></p>
         </section>
 
         <section class="tool" aria-labelledby="selectionHead">
-          <div class="tool-head">
-            <h2 id="selectionHead">선택 영역 바꾸기</h2>
-            <button id="readSelectionBtn" class="btn small" type="button">선택 영역 읽기</button>
-          </div>
-          <textarea id="selectionText" class="sel-text" readonly aria-label="현재 선택 영역" placeholder="편집기에서 글자를 드래그한 뒤 '선택 영역 읽기'를 누르세요."></textarea>
+          <h2 id="selectionHead">선택 영역</h2>
+          <p id="selectionNow" class="sel-now">선택된 글자가 없습니다.</p>
           <form id="selectionForm" class="stack">
-            <label>새 내용 <textarea id="selectionNew" name="newText" rows="4"></textarea></label>
-            <button class="btn primary" type="submit">선택 영역을 이 내용으로 바꾸기</button>
+            <label>새 내용 <textarea id="selectionNew" rows="2"></textarea></label>
+            <button class="btn primary" type="submit">선택 영역을 바꾸기</button>
           </form>
-          <p id="selectionResult" class="hint" role="status"></p>
         </section>
       </aside>
+
+      <section class="editor-area" aria-label="문서 편집기">
+        <iframe id="editorFrame" class="editor-frame" src="/editor/index.html?v=2" title="한글 문서 편집기. 글자는 Aside 도구에서 읽습니다." aria-hidden="true"></iframe>
+      </section>
     </main>
 
     <div id="templatesModal" class="modal" hidden>

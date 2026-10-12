@@ -1,15 +1,23 @@
-// window.hwpCloud: the page-level API for browser AI agents such as Aside.
+// window.hwpCloud: what an Aside agent calls when it can run JavaScript.
+// The same actions exist as labeled controls in the Aside 도구 panel.
 import type { TemplateMeta } from './templates';
+import type { NumberedParagraph, NumberedTable } from './workbench';
 
 export interface AgentContext {
   isReady(): boolean;
   hasDocument(): boolean;
   documentTitle(): string;
-  getParagraphs(): Promise<{ section: number; index: number; text: string }[]>;
-  readSelection(): Promise<string>;
-  replaceSelection(text: string): Promise<void>;
+  refresh(): Promise<void>;
+  outlineText(): string;
+  paragraphs(): NumberedParagraph[];
+  tables(): NumberedTable[];
+  replaceParagraph(no: number, text: string): Promise<void>;
+  insertAfterParagraph(no: number, text: string): Promise<void>;
+  deleteParagraph(no: number): Promise<void>;
+  setCell(tableNo: number, row: number, col: number, text: string): Promise<void>;
   replaceAll(find: string, replacement: string): Promise<number>;
-  insertAtCursor(text: string): Promise<void>;
+  selectionText(): string;
+  replaceSelection(text: string): Promise<void>;
   newDocument(): Promise<void>;
   download(): Promise<string>;
   listTemplates(): Promise<TemplateMeta[]>;
@@ -18,31 +26,53 @@ export interface AgentContext {
 }
 
 const HELP = {
-  status: '() → { ready, hasDocument, title }',
-  getText: '() → 본문 전체 텍스트 (문단은 줄바꿈 구분, 표 안 글자 제외)',
-  getParagraphs: '() → [{ section, index, text }]',
-  getSelection: '() → 사용자가 드래그한 선택 영역 텍스트',
-  replaceSelection: '(text) 선택 영역을 text로 교체',
-  insertAtCursor: '(text) 커서 위치에 text 삽입',
-  replaceAll: '(find, replace) 문서 전체 찾아 바꾸기 → 바꾼 횟수',
-  newDocument: '() 빈 문서 만들기',
-  download: '() 현재 문서를 HWP 파일로 내려받기 → 파일명',
-  listTemplates: '() → [{ id, name, description, format, size }] 내 템플릿 목록',
-  loadTemplate: '(idOrName) 템플릿을 편집기로 불러오기',
-  saveAsTemplate: '(name, description?) 현재 문서를 템플릿으로 저장',
-  note: '모든 편집은 Ctrl+Z로 되돌릴 수 있습니다. 저장(내려받기)은 사용자에게 확인한 뒤 실행하세요.',
+  getText: '() 문단 번호와 표 칸이 적힌 문서 전체',
+  paragraphs: '() [{ no, text }] 빈 문단 포함',
+  tables: '() [{ no, rows, cols, anchorNo, cells: [{ row, col, text }] }] 행·열은 0부터',
+  replaceParagraph: '(문단번호, 새내용) 그 문단 전체를 교체',
+  insertAfterParagraph: '(문단번호, 내용) 그 문단 뒤에 새 문단',
+  deleteParagraph: '(문단번호) 삭제 후 뒤 번호가 당겨짐',
+  setCell: '(표번호, 행, 열, 내용) 행·열은 1부터',
+  replaceAll: '(찾을내용, 바꿀내용) → 바꾼 횟수. 표 안까지 적용',
+  getSelection: '() 편집기에서 드래그한 글자',
+  replaceSelection: '(새내용)',
+  loadTemplate: '(이름 또는 id)',
+  saveAsTemplate: '(이름, 설명?)',
+  download: '() HWP 파일로 내려받기. 사용자 확인 후 실행',
+  note: '번호는 편집 후 바뀝니다. 한 번 고친 뒤 getText()로 다시 읽으세요. Ctrl+Z로 되돌릴 수 있습니다.',
 };
 
 export function installAgentApi(ctx: AgentContext): void {
   const api = {
     help: () => HELP,
     status: () => ({ ready: ctx.isReady(), hasDocument: ctx.hasDocument(), title: ctx.documentTitle() }),
-    getParagraphs: () => ctx.getParagraphs(),
-    getText: async () => (await ctx.getParagraphs()).map((p) => p.text).join('\n'),
-    getSelection: () => ctx.readSelection(),
-    replaceSelection: (text: string) => ctx.replaceSelection(String(text ?? '')),
-    insertAtCursor: (text: string) => ctx.insertAtCursor(String(text ?? '')),
+    refresh: () => ctx.refresh(),
+    getText: async () => {
+      await ctx.refresh();
+      return ctx.outlineText();
+    },
+    paragraphs: async () => {
+      await ctx.refresh();
+      return ctx.paragraphs().map((para) => ({ no: para.no, text: para.text }));
+    },
+    tables: async () => {
+      await ctx.refresh();
+      return ctx.tables().map((table) => ({
+        no: table.no,
+        rows: table.rows,
+        cols: table.cols,
+        anchorNo: table.anchorNo,
+        cells: table.cells.map((cell) => ({ row: cell.row, col: cell.col, text: cell.text })),
+      }));
+    },
+    replaceParagraph: (no: number, text: string) => ctx.replaceParagraph(Number(no), String(text ?? '')),
+    insertAfterParagraph: (no: number, text: string) => ctx.insertAfterParagraph(Number(no), String(text ?? '')),
+    deleteParagraph: (no: number) => ctx.deleteParagraph(Number(no)),
+    setCell: (tableNo: number, row: number, col: number, text: string) =>
+      ctx.setCell(Number(tableNo), Number(row), Number(col), String(text ?? '')),
     replaceAll: (find: string, replacement: string) => ctx.replaceAll(String(find ?? ''), String(replacement ?? '')),
+    getSelection: () => ctx.selectionText(),
+    replaceSelection: (text: string) => ctx.replaceSelection(String(text ?? '')),
     newDocument: () => ctx.newDocument(),
     download: () => ctx.download(),
     listTemplates: () => ctx.listTemplates(),

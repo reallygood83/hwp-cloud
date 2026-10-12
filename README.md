@@ -4,7 +4,7 @@
 
 - 편집 엔진은 [rhwp](https://github.com/edwardkim/rhwp)(MIT) WebAssembly 빌드이며, 문서는 브라우저 밖으로 나가지 않습니다.
 - 템플릿은 구글 로그인 후 Firebase Firestore에 저장되고 본인만 볼 수 있습니다.
-- AI는 [Aside](https://aside.com) 브라우저의 AI를 씁니다. 상단 **Aside 도구** 패널과 `window.hwpCloud` 함수로 문서를 읽고 고칩니다. 에이전트용 안내는 `/llms.txt`에 있습니다.
+- AI는 [Aside](https://aside.com) 브라우저의 AI를 씁니다. 오른쪽 **Aside 도구**에 문단 번호와 표가 글자로 나오고, 그 번호로 고칩니다. 편집기 도구 버튼은 Aside 화면 정보에서 빠져 있습니다. 자바스크립트가 되면 `hwpCloud.help()`, 안내는 `/llms.txt`입니다.
 
 ## 실행
 

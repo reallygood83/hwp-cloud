@@ -2,6 +2,7 @@ import './style.css';
 import type { User } from 'firebase/auth';
 import { installAgentApi } from './agent';
 import { EditorBridge } from './editor';
+import { Workbench } from './workbench';
 import { firebaseEnabled, onUserChanged, signInWithGoogle, signOutUser } from './firebase';
 import {
   CloudTemplateStore,
@@ -27,18 +28,6 @@ const els = {
   toolsClose: $<HTMLButtonElement>('toolsClose'),
   account: $('account'),
   frame: $<HTMLIFrameElement>('editorFrame'),
-  docText: $<HTMLTextAreaElement>('docText'),
-  docStats: $('docStats'),
-  refreshTextBtn: $<HTMLButtonElement>('refreshTextBtn'),
-  replaceForm: $<HTMLFormElement>('replaceForm'),
-  findInput: $<HTMLInputElement>('findInput'),
-  replaceInput: $<HTMLInputElement>('replaceInput'),
-  replaceResult: $('replaceResult'),
-  readSelectionBtn: $<HTMLButtonElement>('readSelectionBtn'),
-  selectionText: $<HTMLTextAreaElement>('selectionText'),
-  selectionForm: $<HTMLFormElement>('selectionForm'),
-  selectionNew: $<HTMLTextAreaElement>('selectionNew'),
-  selectionResult: $('selectionResult'),
   modal: $('templatesModal'),
   modalClose: $<HTMLButtonElement>('templatesClose'),
   storeNote: $('storeNote'),
@@ -55,6 +44,7 @@ const els = {
 };
 
 const editor = new EditorBridge(els.frame);
+const workbench = new Workbench(editor);
 const state = {
   editorReady: false,
   docLoaded: false,
@@ -62,6 +52,7 @@ const state = {
   user: null as User | null,
   store: (firebaseEnabled ? null : new LocalTemplateStore()) as TemplateStore | null,
 };
+workbench.attach(() => state.docLoaded);
 
 let toastTimer = 0;
 export function toast(message: string, isError = false): void {
@@ -84,7 +75,7 @@ function setDocument(title: string, format: 'hwp' | 'hwpx' | null): void {
   els.docFormat.textContent = format ? format.toUpperCase() : '';
   els.downloadBtn.disabled = false;
   document.title = `${state.docTitle} · HWP Cloud`;
-  if (!els.toolsPanel.hidden) void refreshDocText();
+  if (!els.toolsPanel.hidden) workbench.scheduleRefresh(0);
 }
 
 async function loadBytes(bytes: Uint8Array, fileName: string, title = fileName): Promise<void> {
@@ -130,52 +121,7 @@ async function downloadCurrent(): Promise<string> {
 function setToolsOpen(open: boolean): void {
   els.toolsPanel.hidden = !open;
   els.toolsBtn.setAttribute('aria-pressed', String(open));
-  if (open) void refreshDocText();
-}
-
-async function refreshDocText(): Promise<string> {
-  if (!state.docLoaded) {
-    els.docText.value = '';
-    els.docStats.textContent = '열린 문서가 없습니다.';
-    return '';
-  }
-  try {
-    const paragraphs = await editor.getParagraphs();
-    const text = paragraphs.map((p) => p.text).join('\n');
-    els.docText.value = text;
-    els.docStats.textContent = `문단 ${paragraphs.length.toLocaleString('ko-KR')}개 · ${text.length.toLocaleString('ko-KR')}자 (표 안 글자는 제외)`;
-    return text;
-  } catch (err) {
-    els.docStats.textContent = `텍스트 읽기 실패: ${errorMessage(err)}`;
-    return '';
-  }
-}
-
-async function replaceAll(find: string, replacement: string): Promise<number> {
-  if (!state.docLoaded) throw new Error('열린 문서가 없습니다.');
-  if (!find) throw new Error('찾을 내용을 입력하세요.');
-  const res = await editor.replaceAll(find, replacement);
-  const count = res?.ok ? Number(res.count ?? 0) : 0;
-  els.replaceResult.textContent = count > 0 ? `${count}곳을 바꿨습니다.` : `'${find}'을(를) 찾지 못했습니다.`;
-  if (!els.toolsPanel.hidden) await refreshDocText();
-  return count;
-}
-
-async function readSelection(): Promise<string> {
-  const sel = await editor.getSelection();
-  const text = sel?.hasSelection ? sel.text ?? '' : '';
-  els.selectionText.value = text;
-  els.selectionResult.textContent = text ? '' : '선택된 글자가 없습니다. 편집기에서 먼저 드래그하세요.';
-  return text;
-}
-
-async function replaceSelection(newText: string): Promise<void> {
-  const sel = await editor.getSelection();
-  if (!sel?.hasSelection || !sel.start || !sel.end) throw new Error('선택된 영역이 없습니다.');
-  await editor.replaceRange(sel.start, sel.end, newText);
-  els.selectionResult.textContent = '선택 영역을 바꿨습니다.';
-  els.selectionText.value = '';
-  if (!els.toolsPanel.hidden) await refreshDocText();
+  if (open) workbench.scheduleRefresh(0);
 }
 
 // ---------- Templates ----------
@@ -369,25 +315,6 @@ els.downloadBtn.addEventListener('click', async () => {
 
 els.toolsBtn.addEventListener('click', () => setToolsOpen(els.toolsPanel.hidden));
 els.toolsClose.addEventListener('click', () => setToolsOpen(false));
-els.refreshTextBtn.addEventListener('click', () => void refreshDocText());
-els.replaceForm.addEventListener('submit', async (e) => {
-  e.preventDefault();
-  try {
-    await replaceAll(els.findInput.value, els.replaceInput.value);
-  } catch (err) {
-    els.replaceResult.textContent = errorMessage(err);
-  }
-});
-els.readSelectionBtn.addEventListener('click', () => void readSelection());
-els.selectionForm.addEventListener('submit', async (e) => {
-  e.preventDefault();
-  try {
-    await replaceSelection(els.selectionNew.value);
-    els.selectionNew.value = '';
-  } catch (err) {
-    els.selectionResult.textContent = errorMessage(err);
-  }
-});
 
 els.templatesBtn.addEventListener('click', openTemplates);
 els.modalClose.addEventListener('click', () => (els.modal.hidden = true));
@@ -429,15 +356,17 @@ installAgentApi({
   isReady: () => state.editorReady,
   hasDocument: () => state.docLoaded,
   documentTitle: () => state.docTitle,
-  getParagraphs: () => editor.getParagraphs(),
-  readSelection,
-  replaceSelection,
-  replaceAll,
-  insertAtCursor: async (text: string) => {
-    const cursor = await editor.getCursor();
-    if (!cursor) throw new Error('커서 위치를 알 수 없습니다. 편집기를 한 번 클릭하세요.');
-    await editor.replaceRange(cursor, cursor, text);
-  },
+  refresh: () => workbench.refresh(),
+  outlineText: () => workbench.outlineText(),
+  paragraphs: () => workbench.paragraphs(),
+  tables: () => workbench.tables(),
+  replaceParagraph: (no, text) => workbench.replaceParagraph(no, text),
+  insertAfterParagraph: (no, text) => workbench.insertAfterParagraph(no, text),
+  deleteParagraph: (no) => workbench.deleteParagraph(no),
+  setCell: (tableNo, row, col, text) => workbench.setCell(tableNo, row, col, text),
+  replaceAll: (find, replacement) => workbench.replaceAll(find, replacement),
+  selectionText: () => workbench.selectionText(),
+  replaceSelection: (text) => workbench.replaceSelection(text),
   newDocument,
   download: downloadCurrent,
   listTemplates: () => requireStore().list(),
