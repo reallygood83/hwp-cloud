@@ -1,0 +1,109 @@
+<!doctype html>
+<html lang="ko">
+  <head>
+    <meta charset="UTF-8" />
+    <meta name="viewport" content="width=device-width, initial-scale=1.0" />
+    <title>HWP Cloud</title>
+    <meta name="description" content="브라우저에서 한글(HWP·HWPX) 문서를 열고 편집하고, 템플릿을 클라우드에 보관합니다." />
+    <meta
+      name="ai-agent-instructions"
+      content="문서 본문은 캔버스로 그려져 화면 글자를 읽을 수 없습니다. 오른쪽 'Aside 도구' 패널의 '문서 텍스트'로 읽고, '찾아 바꾸기'와 '선택 영역 바꾸기'로 고치세요. 자바스크립트를 실행할 수 있으면 window.hwpCloud.help()를 호출하세요. 자세한 안내: /llms.txt"
+    />
+    <link rel="icon" href="data:image/svg+xml,%3Csvg xmlns='http://www.w3.org/2000/svg' viewBox='0 0 32 32'%3E%3Crect width='32' height='32' rx='8' fill='%232f6bff'/%3E%3Ctext x='16' y='22' text-anchor='middle' font-size='17' fill='white'%3E한%3C/text%3E%3C/svg%3E" />
+  </head>
+  <body>
+    <header class="topbar">
+      <div class="brand">
+        <span class="logo" aria-hidden="true">한</span>
+        <span class="title">HWP Cloud</span>
+        <span class="sep" aria-hidden="true">/</span>
+        <span id="docName" class="doc-name">문서 없음</span>
+        <span id="docFormat" class="badge" hidden></span>
+      </div>
+      <div class="actions">
+        <button id="newBtn" class="btn ghost" type="button">새 문서</button>
+        <button id="openBtn" class="btn ghost" type="button">열기</button>
+        <input id="openInput" type="file" accept=".hwp,.hwpx" hidden />
+        <button id="templatesBtn" class="btn ghost" type="button">템플릿</button>
+        <button id="downloadBtn" class="btn primary" type="button" disabled title="현재 문서를 HWP 파일로 내려받습니다">HWP로 내려받기</button>
+        <button id="toolsBtn" class="btn ghost tools-toggle" type="button" aria-pressed="false" aria-controls="toolsPanel">Aside 도구</button>
+        <div id="account" class="account"></div>
+      </div>
+    </header>
+
+    <main class="workspace">
+      <section class="editor-area" aria-label="문서 편집기">
+        <iframe id="editorFrame" class="editor-frame" src="/editor/index.html" title="한글 문서 편집기"></iframe>
+      </section>
+
+      <aside id="toolsPanel" class="tools" aria-label="Aside 도구" hidden>
+        <div class="tools-head">
+          <strong>Aside 도구</strong>
+          <button id="toolsClose" class="btn ghost icon" type="button" aria-label="Aside 도구 닫기">✕</button>
+        </div>
+        <p class="tools-note">
+          Aside 브라우저의 AI가 이 패널로 문서를 읽고 고칩니다. 바꾼 내용은 편집기에서 Ctrl+Z로 되돌릴 수 있습니다.
+        </p>
+
+        <section class="tool" aria-labelledby="textHead">
+          <div class="tool-head">
+            <h2 id="textHead">문서 텍스트</h2>
+            <button id="refreshTextBtn" class="btn small" type="button">새로고침</button>
+          </div>
+          <textarea id="docText" class="doc-text" readonly aria-label="문서 텍스트" placeholder="문서를 열면 본문 텍스트가 여기에 표시됩니다."></textarea>
+          <p id="docStats" class="hint"></p>
+        </section>
+
+        <section class="tool" aria-labelledby="replaceHead">
+          <h2 id="replaceHead">찾아 바꾸기</h2>
+          <form id="replaceForm" class="stack">
+            <label>찾을 내용 <input id="findInput" name="find" type="text" required /></label>
+            <label>바꿀 내용 <input id="replaceInput" name="replace" type="text" /></label>
+            <button class="btn primary" type="submit">모두 바꾸기</button>
+          </form>
+          <p id="replaceResult" class="hint" role="status"></p>
+        </section>
+
+        <section class="tool" aria-labelledby="selectionHead">
+          <div class="tool-head">
+            <h2 id="selectionHead">선택 영역 바꾸기</h2>
+            <button id="readSelectionBtn" class="btn small" type="button">선택 영역 읽기</button>
+          </div>
+          <textarea id="selectionText" class="sel-text" readonly aria-label="현재 선택 영역" placeholder="편집기에서 글자를 드래그한 뒤 '선택 영역 읽기'를 누르세요."></textarea>
+          <form id="selectionForm" class="stack">
+            <label>새 내용 <textarea id="selectionNew" name="newText" rows="4"></textarea></label>
+            <button class="btn primary" type="submit">선택 영역을 이 내용으로 바꾸기</button>
+          </form>
+          <p id="selectionResult" class="hint" role="status"></p>
+        </section>
+      </aside>
+    </main>
+
+    <div id="templatesModal" class="modal" hidden>
+      <div class="modal-card" role="dialog" aria-modal="true" aria-labelledby="templatesTitle">
+        <div class="modal-head">
+          <strong id="templatesTitle">템플릿 라이브러리</strong>
+          <button id="templatesClose" class="btn ghost icon" type="button" aria-label="닫기">✕</button>
+        </div>
+        <p id="storeNote" class="store-note"></p>
+        <div id="templatesGate" class="gate" hidden>
+          <p>템플릿은 구글 계정에 저장되어 어느 컴퓨터에서든 불러올 수 있습니다.</p>
+          <button id="gateSignIn" class="btn primary" type="button">구글로 로그인</button>
+        </div>
+        <div id="templatesBody">
+          <form id="saveTemplateForm" class="save-form">
+            <input id="templateName" type="text" placeholder="템플릿 이름 (예: 가정통신문)" maxlength="100" required aria-label="템플릿 이름" />
+            <input id="templateDesc" type="text" placeholder="설명 (선택)" maxlength="200" aria-label="템플릿 설명" />
+            <button id="saveCurrentBtn" class="btn primary" type="submit">현재 문서 저장</button>
+            <button id="saveFileBtn" class="btn" type="button">파일에서 추가</button>
+            <input id="templateFileInput" type="file" accept=".hwp,.hwpx" hidden />
+          </form>
+          <ul id="templatesList" class="template-list" aria-label="저장된 템플릿"></ul>
+        </div>
+      </div>
+    </div>
+
+    <div id="toast" class="toast" role="status" aria-live="polite"></div>
+    <script type="module" src="/src/main.ts"></script>
+  </body>
+</html>

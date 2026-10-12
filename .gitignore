@@ -1,0 +1,8 @@
+node_modules/
+dist/
+.env.local
+.firebase/
+.vercel/
+docs/
+firebase-debug.log
+firestore-debug.log
