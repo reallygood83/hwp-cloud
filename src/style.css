@@ -119,6 +119,21 @@ body { display: grid; grid-template-rows: 56px minmax(0, 1fr); overflow: hidden;
   background: var(--surface); border-radius: 14px; padding: 16px 18px; box-shadow: 0 20px 50px rgba(0, 0, 0, 0.2);
 }
 .modal-head { display: flex; align-items: center; justify-content: space-between; }
+.guide-btn { align-self: flex-start; }
+.guide-card { overflow-y: auto; gap: 16px; }
+.guide-step { display: flex; flex-direction: column; gap: 8px; }
+.guide-step h3 { margin: 0; font-size: 14px; }
+.guide-step p { margin: 0; font-size: 13px; color: var(--muted); }
+.guide-prompts { list-style: none; margin: 0; padding: 0; display: flex; flex-direction: column; gap: 6px; }
+.guide-prompts li, .guide-fields dd {
+  display: flex; align-items: center; justify-content: space-between; gap: 10px;
+  padding: 8px 10px; background: var(--bg); border-radius: 8px; font-size: 13px;
+}
+.guide-list { margin: 0; padding-left: 20px; display: flex; flex-direction: column; gap: 10px; font-size: 13px; }
+.guide-fields { display: grid; grid-template-columns: auto 1fr; gap: 6px 10px; align-items: center; margin: 8px 0 0; }
+.guide-fields dt { font-size: 12px; font-weight: 650; color: var(--muted); }
+.guide-fields dd { margin: 0; }
+.guide-fields code { overflow-wrap: anywhere; font-size: 12px; }
 .store-note { margin: 0; font-size: 12px; color: var(--muted); }
 .gate { display: flex; flex-direction: column; align-items: flex-start; gap: 10px; padding: 18px; background: var(--bg); border-radius: var(--radius); }
 .gate p { margin: 0; font-size: 13px; }

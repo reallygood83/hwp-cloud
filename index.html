@@ -55,6 +55,7 @@
           <button id="toolsClose" class="btn ghost icon" type="button" aria-label="Aside 도구 닫기">✕</button>
         </div>
         <p class="tools-note">문서 글자는 여기 있습니다. 왼쪽 편집기 버튼은 무시하세요. 바꾼 내용은 Ctrl+Z로 되돌립니다.</p>
+        <button id="asideGuideBtn" class="btn small guide-btn" type="button">Aside에서 쓰는 법</button>
         <p id="workResult" class="work-result" role="status" aria-live="polite"></p>
 
         <section class="tool" aria-labelledby="outlineHead">
@@ -137,6 +138,47 @@
           </form>
           <ul id="templatesList" class="template-list" aria-label="저장된 템플릿"></ul>
         </div>
+      </div>
+    </div>
+
+    <div id="asideGuide" class="modal" hidden>
+      <div class="modal-card guide-card" role="dialog" aria-modal="true" aria-labelledby="asideGuideTitle">
+        <div class="modal-head">
+          <strong id="asideGuideTitle">Aside에서 쓰는 법</strong>
+          <button id="asideGuideClose" class="btn ghost icon" type="button" aria-label="닫기">✕</button>
+        </div>
+
+        <section class="guide-step">
+          <h3>설치 없이 바로</h3>
+          <p>Aside 브라우저에서 이 페이지를 열고 문서를 연 뒤, Aside에게 이렇게 말하세요.</p>
+          <ul class="guide-prompts">
+            <li><span>오른쪽 Aside 도구를 보고 이 문서를 요약해줘</span><button class="btn small" type="button" data-copy-text>복사</button></li>
+            <li><span>표 1의 빈칸을 채워줘. 성명은 홍길동, 소속은 교무부</span><button class="btn small" type="button" data-copy-text>복사</button></li>
+            <li><span>문서 전체에서 2025년을 2026년으로 바꿔줘</span><button class="btn small" type="button" data-copy-text>복사</button></li>
+          </ul>
+        </section>
+
+        <section class="guide-step">
+          <h3>스킬로 추가하면 더 정확합니다 (1분)</h3>
+          <ol class="guide-list">
+            <li>Aside 앱에서 <b>Settings → Plugins &amp; MCPs → My Skills</b>로 가서 <b>Create new skill</b>을 누릅니다.</li>
+            <li>
+              아래 값을 칸마다 복사해 붙여넣습니다.
+              <dl class="guide-fields">
+                <dt>Name</dt>
+                <dd><code id="skillName">hwp-cloud</code><button class="btn small" type="button" data-copy="skillName">복사</button></dd>
+                <dt>Description</dt>
+                <dd><code id="skillDesc">HWP Cloud에서 한글(HWP) 문서를 읽거나 고칠 때 먼저 읽는다</code><button class="btn small" type="button" data-copy="skillDesc">복사</button></dd>
+                <dt>Instructions</dt>
+                <dd><code>사용 설명서 전체</code><button id="copySkillBody" class="btn small primary" type="button">복사</button></dd>
+                <dt>Activation → Websites</dt>
+                <dd><code id="skillSite"></code><button class="btn small" type="button" data-copy="skillSite">복사</button></dd>
+              </dl>
+            </li>
+            <li>저장하면 끝입니다. 다음부터 이 사이트를 열면 Aside가 스킬을 알아서 씁니다.</li>
+          </ol>
+          <p class="hint">폴더로 가져오고 싶으면 <a href="/aside-skill.md" download="SKILL.md">SKILL.md 내려받기</a> 후 새 폴더에 넣고 <b>Import skill folder</b>를 누르세요.</p>
+        </section>
       </div>
     </div>
 

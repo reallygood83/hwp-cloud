@@ -40,6 +40,11 @@ const els = {
   saveFileBtn: $<HTMLButtonElement>('saveFileBtn'),
   templateFileInput: $<HTMLInputElement>('templateFileInput'),
   templatesList: $('templatesList'),
+  guideBtn: $<HTMLButtonElement>('asideGuideBtn'),
+  guide: $('asideGuide'),
+  guideClose: $<HTMLButtonElement>('asideGuideClose'),
+  skillSite: $('skillSite'),
+  copySkillBody: $<HTMLButtonElement>('copySkillBody'),
   toast: $('toast'),
 };
 
@@ -325,7 +330,65 @@ els.modal.addEventListener('click', (e) => {
   if (e.target === els.modal) els.modal.hidden = true;
 });
 document.addEventListener('keydown', (e) => {
-  if (e.key === 'Escape' && !els.modal.hidden) els.modal.hidden = true;
+  if (e.key !== 'Escape') return;
+  els.modal.hidden = true;
+  els.guide.hidden = true;
+});
+
+function copyWithSelection(text: string): boolean {
+  const area = document.createElement('textarea');
+  area.value = text;
+  area.setAttribute('readonly', '');
+  area.style.cssText = 'position:fixed;top:0;left:0;opacity:0;';
+  document.body.appendChild(area);
+  area.select();
+  const ok = document.execCommand('copy');
+  area.remove();
+  return ok;
+}
+
+async function copyText(text: string): Promise<void> {
+  try {
+    await navigator.clipboard.writeText(text);
+  } catch (err) {
+    if (!copyWithSelection(text)) {
+      console.warn('[copy]', err);
+      toast('복사가 막혔습니다. 글자를 직접 드래그해 복사하거나, 설명서는 SKILL.md 내려받기를 쓰세요.', true);
+      return;
+    }
+  }
+  toast('복사했습니다. Aside에 붙여넣으세요.');
+}
+
+let skillBody: Promise<string> | null = null;
+function loadSkillBody(): Promise<string> {
+  skillBody ??= fetch('/aside-skill.md', { cache: 'no-cache' }).then((res) => {
+    if (!res.ok) throw new Error(`HTTP ${res.status}`);
+    return res.text();
+  });
+  skillBody.catch(() => (skillBody = null));
+  return skillBody;
+}
+
+els.skillSite.textContent = `${location.host}/**`;
+els.guideBtn.addEventListener('click', () => {
+  els.guide.hidden = false;
+  void loadSkillBody().catch(() => undefined);
+});
+els.guideClose.addEventListener('click', () => (els.guide.hidden = true));
+els.guide.addEventListener('click', (e) => {
+  if (e.target === els.guide) els.guide.hidden = true;
+  const button = (e.target as HTMLElement).closest<HTMLButtonElement>('button[data-copy], button[data-copy-text]');
+  if (!button) return;
+  const source = button.dataset.copy ? document.getElementById(button.dataset.copy) : button.previousElementSibling;
+  void copyText(source?.textContent?.trim() ?? '');
+});
+els.copySkillBody.addEventListener('click', async () => {
+  try {
+    await copyText(await loadSkillBody());
+  } catch (err) {
+    toast(`설명서를 가져오지 못했습니다: ${errorMessage(err)}`, true);
+  }
 });
 els.gateSignIn.addEventListener('click', () => void signIn());
 els.saveForm.addEventListener('submit', async (e) => {
