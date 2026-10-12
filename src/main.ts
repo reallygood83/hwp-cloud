@@ -353,7 +353,7 @@ async function copyText(text: string): Promise<void> {
   } catch (err) {
     if (!copyWithSelection(text)) {
       console.warn('[copy]', err);
-      toast('복사가 막혔습니다. 글자를 직접 드래그해 복사하거나, 설명서는 SKILL.md 내려받기를 쓰세요.', true);
+      toast('복사가 막혔습니다. 글자를 직접 드래그해 복사하거나, 아래 zip 내려받기로 가져오세요.', true);
       return;
     }
   }
@@ -364,7 +364,7 @@ let skillBody: Promise<string> | null = null;
 function loadSkillBody(): Promise<string> {
   skillBody ??= fetch('/aside-skill.md', { cache: 'no-cache' }).then((res) => {
     if (!res.ok) throw new Error(`HTTP ${res.status}`);
-    return res.text();
+    return res.text().then((text) => text.replace(/^---\n[\s\S]*?\n---\n+/, ''));
   });
   skillBody.catch(() => (skillBody = null));
   return skillBody;

@@ -4,9 +4,10 @@
   "version": "0.1.0",
   "type": "module",
   "scripts": {
-    "dev": "vite",
+    "dev": "npm run build:skill && vite",
     "build:editor": "node scripts/build-editor.mjs",
-    "build": "tsc --noEmit && vite build",
+    "build:skill": "node scripts/build-skill.mjs",
+    "build": "npm run build:skill && tsc --noEmit && vite build",
     "preview": "vite preview",
     "deploy:rules": "firebase deploy --only firestore"
   },

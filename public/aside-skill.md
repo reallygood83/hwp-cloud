@@ -1,3 +1,8 @@
+---
+name: hwp-cloud
+description: HWP Cloud에서 한글(HWP·HWPX) 문서를 읽거나 고칠 때 먼저 읽는다. 문단 번호와 표 칸으로 읽고 hwpCloud.applyEdits로 고친다.
+---
+
 # HWP Cloud
 
 Read this skill before reading or editing a 한글(HWP·HWPX) document on hwp-cloud.vercel.app.
