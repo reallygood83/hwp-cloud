@@ -10,6 +10,17 @@ export interface NumberedTable extends TableBlock {
 }
 type Item = { kind: 'p'; para: NumberedParagraph } | { kind: 't'; table: NumberedTable };
 
+export type FoundAt =
+  | { type: 'paragraph'; no: number; text: string }
+  | { type: 'cell'; table: number; row: number; col: number; text: string };
+
+type ParagraphEdit =
+  | { op: 'replace'; no: number; text: string; expect?: string }
+  | { op: 'insertAfter'; no: number; text: string; expect?: string }
+  | { op: 'delete'; no: number; text?: never; expect?: string };
+type CellEdit = { op: 'cell'; table: number; row: number; col: number; text: string; expect?: string };
+export type Edit = ParagraphEdit | CellEdit;
+
 const $ = <T extends HTMLElement = HTMLElement>(id: string) => document.getElementById(id) as T;
 
 export class Workbench {
@@ -116,10 +127,67 @@ export class Workbench {
   async insertAfterParagraph(no: number, text: string): Promise<void> {
     await this.refresh();
     const para = this.findParagraph(no);
-    const at = { sectionIndex: para.section, paragraphIndex: para.index, charOffset: para.text.length };
-    await this.editor.replaceRange(at, at, `\n${text}`);
-    this.report(`문단 ${no} 뒤에 넣었습니다. 뒤 번호가 하나씩 밀렸습니다.`);
+    await this.editor.insertParagraphAfter(para.section, para.index, text);
+    const added = text.split(/\r\n|\r|\n/).length;
+    this.report(`문단 ${no} 뒤에 ${added}개 문단을 넣었습니다. 뒤 번호가 ${added}씩 밀렸습니다.`);
     await this.refresh();
+  }
+
+  async find(query: string): Promise<FoundAt[]> {
+    if (!query) throw new Error('찾을 내용을 입력하세요.');
+    await this.refresh();
+    const found: FoundAt[] = [];
+    for (const para of this.paragraphs()) {
+      if (para.text.includes(query)) found.push({ type: 'paragraph', no: para.no, text: para.text });
+    }
+    for (const table of this.tables()) {
+      for (const cell of table.cells) {
+        if (cell.text.includes(query)) found.push({ type: 'cell', table: table.no, row: cell.row + 1, col: cell.col + 1, text: cell.text });
+      }
+    }
+    return found;
+  }
+
+  async applyEdits(edits: Edit[]): Promise<number> {
+    if (!Array.isArray(edits) || edits.length === 0) throw new Error('고칠 내용이 없습니다.');
+    await this.refresh();
+    edits.forEach((edit, i) => this.checkEdit(edit, i + 1));
+    // Body paragraphs go bottom-up so every number still means what it meant when the batch was read.
+    const order = { insertAfter: 0, replace: 1, delete: 2 } as const;
+    const cells = edits.filter((edit): edit is CellEdit => edit.op === 'cell');
+    const paras = edits
+      .filter((edit): edit is ParagraphEdit => edit.op !== 'cell')
+      .sort((a, b) => b.no - a.no || order[a.op] - order[b.op]);
+    for (const edit of cells) await this.setCell(edit.table, edit.row, edit.col, edit.text);
+    for (const edit of paras) {
+      if (edit.op === 'replace') await this.replaceParagraph(edit.no, edit.text);
+      else if (edit.op === 'insertAfter') await this.insertAfterParagraph(edit.no, edit.text);
+      else await this.deleteParagraph(edit.no);
+    }
+    this.report(`${edits.length}건을 고쳤습니다. 번호가 바뀌었을 수 있으니 다시 읽으세요.`);
+    return edits.length;
+  }
+
+  private checkEdit(edit: Edit, n: number): void {
+    const where = `${n}번째 수정`;
+    if (edit.op === 'cell') {
+      let cell: NumberedTable['cells'][number];
+      try {
+        cell = this.findCell(edit.table, edit.row, edit.col).cell;
+      } catch (err) {
+        throw new Error(`${where}: ${err instanceof Error ? err.message : String(err)}`);
+      }
+      if (edit.expect !== undefined && cell.text.trim() !== edit.expect.trim()) {
+        throw new Error(`${where}: 표 ${edit.table} ${edit.row}행 ${edit.col}열이 '${cell.text}'입니다. 예상: '${edit.expect}'. 아무것도 고치지 않았습니다.`);
+      }
+      return;
+    }
+    if (!['replace', 'insertAfter', 'delete'].includes(edit.op)) throw new Error(`${where}: op는 replace, insertAfter, delete, cell 중 하나입니다.`);
+    const para = this.paragraphs()[edit.no - 1];
+    if (!para) throw new Error(`${where}: 문단 ${edit.no}이(가) 없습니다. 1~${this.paragraphs().length}번입니다.`);
+    if (edit.expect !== undefined && para.text.trim() !== edit.expect.trim()) {
+      throw new Error(`${where}: 문단 ${edit.no}이(가) '${para.text}'입니다. 예상: '${edit.expect}'. 아무것도 고치지 않았습니다.`);
+    }
   }
 
   async deleteParagraph(no: number): Promise<void> {
@@ -130,8 +198,7 @@ export class Workbench {
     await this.refresh();
   }
 
-  async setCell(tableNo: number, row: number, col: number, text: string): Promise<void> {
-    await this.refresh();
+  private findCell(tableNo: number, row: number, col: number): { table: NumberedTable; cell: NumberedTable['cells'][number] } {
     const table = this.tables()[tableNo - 1];
     if (!table) throw new Error(`표 ${tableNo}이(가) 없습니다. 1~${this.tables().length}번입니다.`);
     const cell = table.cells.find(
@@ -142,6 +209,12 @@ export class Workbench {
         col - 1 < item.col + Math.max(1, item.colSpan),
     );
     if (!cell) throw new Error(`표 ${tableNo}에 ${row}행 ${col}열이 없습니다.`);
+    return { table, cell };
+  }
+
+  async setCell(tableNo: number, row: number, col: number, text: string): Promise<void> {
+    await this.refresh();
+    const { table, cell } = this.findCell(tableNo, row, col);
     await this.editor.setCellText(table, cell.cell, text);
     this.report(`표 ${tableNo}의 ${row}행 ${col}열을 바꿨습니다.`);
     await this.refresh();

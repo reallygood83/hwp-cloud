@@ -298,6 +298,9 @@ editor
   .catch((err) => toast(errorMessage(err), true));
 
 els.newBtn.addEventListener('click', () => void newDocument());
+editor.onCommand((command) => {
+  if (command === 'new-document') void newDocument();
+});
 els.openBtn.addEventListener('click', () => els.openInput.click());
 els.openInput.addEventListener('change', () => {
   const file = els.openInput.files?.[0];
@@ -365,6 +368,8 @@ installAgentApi({
   deleteParagraph: (no) => workbench.deleteParagraph(no),
   setCell: (tableNo, row, col, text) => workbench.setCell(tableNo, row, col, text),
   replaceAll: (find, replacement) => workbench.replaceAll(find, replacement),
+  find: (query) => workbench.find(query),
+  applyEdits: (edits) => workbench.applyEdits(edits),
   selectionText: () => workbench.selectionText(),
   replaceSelection: (text) => workbench.replaceSelection(text),
   newDocument,

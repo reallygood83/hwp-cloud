@@ -5,9 +5,20 @@
     <meta name="viewport" content="width=device-width, initial-scale=1.0" />
     <title>HWP Cloud</title>
     <meta name="description" content="브라우저에서 한글(HWP·HWPX) 문서를 열고 편집하고, 템플릿을 클라우드에 보관합니다." />
+    <meta property="og:title" content="HWP Cloud" />
+    <meta property="og:description" content="브라우저에서 한글 문서를 열고 편집합니다." />
+    <meta property="og:type" content="website" />
+    <meta property="og:url" content="https://hwp-cloud.vercel.app/" />
+    <meta property="og:image" content="https://hwp-cloud.vercel.app/og.jpg" />
+    <meta property="og:image:width" content="1200" />
+    <meta property="og:image:height" content="630" />
+    <meta name="twitter:card" content="summary_large_image" />
+    <meta name="twitter:title" content="HWP Cloud" />
+    <meta name="twitter:description" content="브라우저에서 한글 문서를 열고 편집합니다." />
+    <meta name="twitter:image" content="https://hwp-cloud.vercel.app/og.jpg" />
     <meta
       name="ai-agent-instructions"
-      content="왼쪽 편집기는 그림이라 글자를 읽을 수 없습니다. 오른쪽 Aside 도구의 문단 번호와 표를 읽고, 아래 입력칸으로 고치세요. 자바스크립트가 되면 window.hwpCloud.help(). 안내: /llms.txt"
+      content="왼쪽 편집기는 그림이라 글자를 읽을 수 없습니다. 오른쪽 Aside 도구의 문단 번호와 표를 읽고, 아래 입력칸으로 고치세요. 자바스크립트가 되면 window.hwpCloud.help(). 먼저 /aside-skill.md 를 읽으세요."
     />
     <link rel="icon" href="data:image/svg+xml,%3Csvg xmlns='http://www.w3.org/2000/svg' viewBox='0 0 32 32'%3E%3Crect width='32' height='32' rx='8' fill='%232f6bff'/%3E%3Ctext x='16' y='22' text-anchor='middle' font-size='17' fill='white'%3E한%3C/text%3E%3C/svg%3E" />
   </head>
@@ -20,11 +31,17 @@
         <span id="docName" class="doc-name">문서 없음</span>
         <span id="docFormat" class="badge" hidden></span>
       </div>
+      <nav class="shortcuts" aria-label="바로가기">
+        <a class="shortcut" href="https://www.youtube.com/@%EB%B0%B0%EC%9B%80%EC%9D%98%EB%8B%AC%EC%9D%B8-p5v" target="_blank" rel="noopener noreferrer">배움의 달인</a>
+        <a class="shortcut" href="https://open.kakao.com/o/gubGYQ7g" target="_blank" rel="noopener noreferrer">오픈카톡</a>
+      </nav>
       <div class="actions">
-        <button id="newBtn" class="btn ghost" type="button">새 문서</button>
-        <button id="openBtn" class="btn ghost" type="button">열기</button>
-        <input id="openInput" type="file" accept=".hwp,.hwpx" hidden />
-        <button id="templatesBtn" class="btn ghost" type="button">템플릿</button>
+        <div class="action-group" role="group" aria-label="문서">
+          <button id="newBtn" class="btn ghost" type="button">새 문서</button>
+          <button id="openBtn" class="btn ghost" type="button">열기</button>
+          <input id="openInput" type="file" accept=".hwp,.hwpx" hidden />
+          <button id="templatesBtn" class="btn ghost" type="button">템플릿</button>
+        </div>
         <button id="downloadBtn" class="btn primary" type="button" disabled title="현재 문서를 HWP 파일로 내려받습니다">HWP로 내려받기</button>
         <button id="toolsBtn" class="btn ghost tools-toggle" type="button" aria-pressed="true" aria-controls="toolsPanel">Aside 도구</button>
         <div id="account" class="account"></div>

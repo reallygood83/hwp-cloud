@@ -43,6 +43,7 @@ export class EditorBridge {
   private pending = new Map<number, Pending>();
   private changeListeners: (() => void)[] = [];
   private selectionListeners: ((sel: EditorSelection) => void)[] = [];
+  private commandListeners: ((command: string) => void)[] = [];
 
   constructor(private frame: HTMLIFrameElement) {
     window.addEventListener('message', (event) => {
@@ -54,6 +55,10 @@ export class EditorBridge {
       }
       if (msg?.type === 'rhwp-selection') {
         this.selectionListeners.forEach((fn) => fn(msg.payload ?? { hasSelection: false }));
+        return;
+      }
+      if (msg?.type === 'rhwp-command' && typeof msg.command === 'string') {
+        this.commandListeners.forEach((fn) => fn(msg.command));
         return;
       }
       if (!msg || msg.type !== 'rhwp-response') return;
@@ -72,6 +77,10 @@ export class EditorBridge {
 
   onSelectionChanged(fn: (sel: EditorSelection) => void): void {
     this.selectionListeners.push(fn);
+  }
+
+  onCommand(fn: (command: string) => void): void {
+    this.commandListeners.push(fn);
   }
 
   request<T = any>(method: string, params: Record<string, unknown> = {}, timeoutMs = 30000): Promise<T> {
@@ -141,6 +150,10 @@ export class EditorBridge {
 
   deleteParagraph(section: number, paragraph: number): Promise<unknown> {
     return this.request('deleteParagraph', { section, paragraph });
+  }
+
+  insertParagraphAfter(section: number, paragraph: number, text: string): Promise<unknown> {
+    return this.request('insertParagraphAfter', { section, paragraph, text });
   }
 
   getSelection(): Promise<EditorSelection> {

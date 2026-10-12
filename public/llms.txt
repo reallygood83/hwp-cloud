@@ -1,5 +1,7 @@
 # HWP Cloud — Aside에서 쓰는 법
 
+전체 사용법: /aside-skill.md (먼저 읽으세요)
+
 왼쪽 편집기는 그림입니다. 글자는 읽히지 않고 도구 버튼만 많습니다. 무시하세요.
 오른쪽 **Aside 도구**가 문서입니다. 문단은 "문단 12 …", 표는 "표 1" 캡션과 행·열 칸으로 나옵니다.
 
@@ -12,10 +14,12 @@
 6. 결과 문장은 패널 위쪽에 바로 표시됩니다.
 
 ## 자바스크립트를 실행할 수 있을 때
-`hwpCloud.help()` 후 이 함수를 쓰세요.
+`hwpCloud.help()` 후 이 함수를 쓰세요. 번호는 모두 1부터입니다.
 - `await hwpCloud.getText()`
+- `await hwpCloud.find(찾을말)` → 문단 번호 또는 표·행·열
+- `await hwpCloud.applyEdits([{ op, no, text, expect }, …])` 여러 곳을 한 번에. 번호는 호출 전 기준
 - `await hwpCloud.replaceParagraph(번호, 내용)`
-- `await hwpCloud.insertAfterParagraph(번호, 내용)`
+- `await hwpCloud.insertAfterParagraph(번호, 내용)` 줄바꿈마다 문단 하나
 - `await hwpCloud.deleteParagraph(번호)`
 - `await hwpCloud.setCell(표번호, 행, 열, 내용)`
 - `await hwpCloud.replaceAll(찾을말, 바꿀말)`

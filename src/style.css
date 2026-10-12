@@ -36,7 +36,16 @@ body { display: grid; grid-template-rows: 56px minmax(0, 1fr); overflow: hidden;
   font-size: 11px; font-weight: 700; color: var(--accent); background: var(--accent-soft);
   padding: 2px 6px; border-radius: 6px;
 }
-.actions { display: flex; align-items: center; gap: 6px; }
+.shortcuts { display: flex; align-items: center; gap: 4px; margin-left: auto; }
+.shortcut {
+  display: inline-flex; align-items: center; height: 32px; padding: 0 10px;
+  border-radius: 999px; color: var(--muted); font-size: 12px; font-weight: 650;
+  text-decoration: none;
+}
+.shortcut:hover { background: #f1f3f6; color: var(--text); }
+.shortcut:focus-visible { outline: 2px solid var(--accent); outline-offset: 1px; }
+.actions { display: flex; align-items: center; gap: 6px; margin-left: 8px; padding-left: 8px; border-left: 1px solid var(--border); }
+.action-group { display: flex; align-items: center; gap: 2px; }
 
 .btn {
   height: 34px; padding: 0 12px; border-radius: 8px; border: 1px solid var(--border);
@@ -70,8 +79,14 @@ body { display: grid; grid-template-rows: 56px minmax(0, 1fr); overflow: hidden;
   background: var(--surface); border-left: 1px solid var(--border); overflow-y: auto;
 }
 .tools-head, .tool-head { display: flex; align-items: center; justify-content: space-between; gap: 8px; }
-.tools-note { margin: 0; font-size: 12px; line-height: 1.5; color: var(--muted); }
-.tool { display: flex; flex-direction: column; gap: 8px; padding-top: 12px; border-top: 1px solid var(--border); }
+.tools-note {
+  margin: 0; padding: 10px 12px; font-size: 12px; line-height: 1.5; color: var(--muted);
+  background: var(--accent-soft); border-radius: 10px;
+}
+.tool {
+  display: flex; flex-direction: column; gap: 8px; padding: 12px;
+  background: var(--bg); border: 1px solid var(--border); border-radius: 12px;
+}
 .tool h2 { margin: 0; font-size: 13px; }
 .outline { display: flex; flex-direction: column; gap: 8px; }
 .ol-para { margin: 0; font-size: 13px; line-height: 1.55; }
@@ -131,6 +146,9 @@ body { display: grid; grid-template-rows: 56px minmax(0, 1fr); overflow: hidden;
 
 @media (max-width: 900px) {
   .title, .sep, .account-name { display: none; }
+  .topbar { overflow-x: auto; }
+  .doc-name { max-width: 120px; }
+  .shortcut { padding: 0 8px; }
   .workspace,
   .workspace:has(#toolsPanel:not([hidden])) { grid-template-columns: 1fr; }
   .tools { position: fixed; top: 56px; right: 0; bottom: 0; z-index: 30; width: min(420px, 100vw); box-shadow: -8px 0 24px rgba(0, 0, 0, 0.12); }
